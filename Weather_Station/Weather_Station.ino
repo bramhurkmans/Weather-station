@@ -1,6 +1,6 @@
 /* Made by Bram, Ilse, Iain en Rowan 
-
-2017
+IC15AO-A/B 
+2017 
 */
 
 void setup() {
