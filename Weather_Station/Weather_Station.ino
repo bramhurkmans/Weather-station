@@ -13,7 +13,6 @@
 DHT dht(DHTPIN, DHTTYPE);
 
 const int buttonPinBIIR = 2;     // the number of the pushbutton pin
-const int ledPinBIIR =  13;      // the number of the LED pin
 
 int counterBIIR = 2;
 
@@ -27,7 +26,6 @@ void setup()
   Serial.begin(9600);
   lcd.begin(16, 2);
   dht.begin();
-  pinMode(ledPinBIIR, OUTPUT);
   pinMode(buttonPinBIIR, INPUT);
 }
 
@@ -36,11 +34,6 @@ void loop()
 
   readButtonBIIR();
   meassureInformationBIIR();
-
-    if (Serial.available())
-    {
-      writeLcdBIIR();
-    }
 
 }
 
@@ -54,6 +47,7 @@ void readButtonBIIR()
 
       //   Serial.println("Button has been pressed");
       chooseInformationShown();
+      lcd.clear();
 
     } else {
       //  Serial.println("Button has been released");
@@ -63,16 +57,6 @@ void readButtonBIIR()
   lastBtnStateBIIR =  btnStateBIIR;
 }
 
-void writeLcdBIIR()
-{
-  delay(100);
-  lcd.clear();
-  while (Serial.available() > 0)
-  {
-    lcd.write(Serial.read());
-  }
-}
-
 void chooseInformationShown()
 {
   switch (counterBIIR)
@@ -80,18 +64,21 @@ void chooseInformationShown()
     case 1:    //Temperature & Humidity
 
       Serial.println("Temperature & Humidity");
+      lcd.clear();
       counterBIIR = 2;
       break;
 
     case 2:    //Barometer
 
       Serial.println("Barometer");
+      lcd.clear();
       counterBIIR = 3;
       break;
 
     case 3:    //Compass
 
       Serial.println("Compass");
+      lcd.clear();
       counterBIIR = 1;
       break;
   }
@@ -113,6 +100,7 @@ void meassureInformationBIIR()
       break;
 
     case 1:    //Compass Void
+    
 
 
       break;
@@ -131,21 +119,35 @@ void tempHumBIIR()
   if (isnan(t) || isnan(h))
   {
     Serial.println("Failed to read from DHT");
+    lcd.print("Failed to read");
   }
   else
   {
-    if (counterBIIR == 2)
-    {
-      readButtonBIIR();
-      Serial.print("Humidity: ");
-      Serial.print(h);
-      readButtonBIIR();
-      Serial.print(" %\t");
-      Serial.print("Temperature: ");
-      readButtonBIIR();
-      Serial.print(t);
-      Serial.println(" *C");
-    }
+    lcd.clear();
+    readButtonBIIR();
+
+    Serial.print("Humidity: ");
+    Serial.print(h);
+    Serial.print(" %\t");
+    readButtonBIIR();
+
+    lcd.print("Humidity: ");
+    lcd.print(h);
+    lcd.print("%");
+    readButtonBIIR();
+
+    Serial.print("Temperature: ");
+    Serial.print(t);
+    Serial.println(" *C");
+    readButtonBIIR();
+
+    lcd.setCursor(2, 1);
+    lcd.print("Temp: ");
+    lcd.print(t);
+    lcd.print("C");
+    readButtonBIIR();
   }
 }
+
+
 
