@@ -20,26 +20,22 @@ HMC5883L_Simple Compass; // Compass
 DHT dht(DHTPIN, DHTTYPE); //Humidity + temperature
 BMP280 bmp280; //Barometer
 
-const int buttonPinBIIR = 2;     // the number of the pushbutton pin
 
-int counterBIIR = 2;
-int errorBIIR;
+/* Declarations */
+// Button
+
+const int buttonPinBIIR = 2;     // the number of the pushbutton pin
+boolean lastBtnStateBIIR;
+boolean btnStateBIIR;
+
+//Temperature & humidity
 
 float oldHumBIIR;
 float oldTempBIIR;
 
-boolean lastBtnStateBIIR;
-boolean btnStateBIIR;
+//Barometer
 
 boolean printBarometerBIIR = false;
-boolean printCompassBIIR = false;
-
-float oldXBIIR = 100;
-float oldYBIIR = 100;
-float oldZBIIR = 100;
-
-float compassHeadingBIIR;
-float oldCompassHeadingBIIR = 100;
 
 float oldBarTempBIIR = 100;
 float oldPressBIIR = 100;
@@ -49,9 +45,26 @@ float newBarTempBIIR;
 float newBarPressBIIR;
 float newBarAltBIIR;
 
-int HeadingBIIR;
+//Compass
+
+boolean printCompassBIIR = false;
 
 int compassXBIIR, compassYBIIR, compassZBIIR; //triple acompassXBIIRis data
+int HeadingBIIR;
+
+float oldXBIIR = 100;
+float oldYBIIR = 100;
+float oldZBIIR = 100;
+
+float oldCompassHeadingBIIR = 100;
+float compassHeadingBIIR;
+
+//etc.
+
+int counterBIIR = 2;
+int errorBIIR;
+
+//Custom char bytes (Compass visualisation)
 
 byte NBIIR[8] = { //N
   B00000,
@@ -143,13 +156,18 @@ byte NwBIIR[8] = {  //N-W
 
 void setup()
 {
+  pinMode(buttonPinBIIR, INPUT); //Set as input
+
   Serial.begin(9600);
+
   lcd.begin(20, 4);
   lcd.backlight();
   lcd.setCursor(0, 0);
+
   dht.begin();
-  pinMode(buttonPinBIIR, INPUT);
   Wire.begin();
+
+  //Create custom characters from the bytes
 
   lcd.createChar(1, NBIIR);
   lcd.createChar(2, NeBIIR);
@@ -170,12 +188,12 @@ void setup()
 void loop()
 {
 
-  readButtonBIIR();
-  meassureInformationBIIR();
+  readButtonBIIR(); //Read the button
+  meassureInformationBIIR(); //Meassure & print the chosen information
 
 }
 
-void readButtonBIIR()
+void readButtonBIIR() //Reads the button
 {
   btnStateBIIR = digitalRead(buttonPinBIIR);
 
@@ -184,7 +202,7 @@ void readButtonBIIR()
     if ( btnStateBIIR == HIGH) {
 
       //   Serial.println("Button has been pressed");
-      chooseInformationShown();
+      chooseInformationShownBIIR();
       lcd.clear();
 
     } else {
@@ -195,11 +213,14 @@ void readButtonBIIR()
   lastBtnStateBIIR =  btnStateBIIR;
 }
 
-void chooseInformationShown()
+void chooseInformationShownBIIR()
 {
+  /* Switch case, works on counterBIIR that gets +1 everytime the button is pressed.
+     With exception when counterBIIR == 3, then it gets resetted to 1*/
   switch (counterBIIR)
   {
     case 1:    //Temperature & Humidity
+      //Reset compass var's
       oldXBIIR = 100;
       oldYBIIR = 100;
       oldZBIIR = 100;
@@ -207,61 +228,77 @@ void chooseInformationShown()
 
       Serial.println("Temperature & Humidity");
 
-      oldHumBIIR = 0;
-      oldTempBIIR = 0;
       lcd.clear();
+
+      //Prepare switchcase for next button click
       counterBIIR = 2;
+
       break;
 
     case 2:    //Barometer
+      //Reset Temperature & Humidity var's
       oldHumBIIR = 100;
       oldTempBIIR = 100;
 
       Serial.println("Barometer");
 
       lcd.clear();
+
+      //allows to print out the main information of the barometer
       printBarometerBIIR = false;
 
+      //error
       if (!bmp280.init()) {
         Serial.println("Device error!");
+        lcd.print("Device error!");
       }
 
+      //Prepare switchcase for next button click
       counterBIIR = 3;
       break;
 
     case 3:    //Compass
 
+      //Reset Barometer var's
       oldBarTempBIIR = 100;
       oldPressBIIR = 100;
       oldAltBIIR = 100;
+
+      //allows to print out the main information of the compass
       printCompassBIIR = false;
 
       Serial.println("Compass");
+
       lcd.clear();
+
+      //Prepare switchcase for next button click
       counterBIIR = 1;
       break;
   }
 }
 
 void meassureInformationBIIR()
+/*Main loop for reading and writing chosen function (chooseInformationShownBIIR)
+  Switch - case links to other functions
+*/
 {
   switch (counterBIIR)
   {
     case 2:    //Temperature & Humidity Void
 
-      tempHumBIIR();
+      tempHumBIIR(); //Reads \ prints out Temperature & Humidity
 
       break;
 
     case 3:    //Barometer Void
 
-      barometerBIIR();
+      barometerBIIR(); //Reads \ prints out barometer
 
       break;
 
     case 1:    //Compass Void
 
-      compassBIIR();
+      compassBIIR(); //Reads \ prints out compass
 
       break;
   }
@@ -269,12 +306,16 @@ void meassureInformationBIIR()
 
 void tempHumBIIR()
 {
+  /*
+     Main loop for reading and writing the Temperature and Humidity sensor
+  */
+
   // Reading temperature or humidity takes about 250 milliseconds!
   // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
   float m_hBIIR = dht.readHumidity();
   float m_tBIIR = dht.readTemperature();
 
-  // check if returns are valid, if they are NaN (not a number) then something went wrong!
+  // check if returns are valid, if they are NaN (not a number) then something went wrong! Send error request to LCD and serial
   if (isnan(m_tBIIR) || isnan(m_hBIIR))
   {
     Serial.println("Failed to read from DHT");
@@ -282,31 +323,26 @@ void tempHumBIIR()
   }
   else
   {
-    if (!(m_hBIIR == oldHumBIIR && m_tBIIR == oldTempBIIR))
+    if (!(m_hBIIR == oldHumBIIR && m_tBIIR == oldTempBIIR)) //If something changed (Temperature/Humidity) update the lcd
     {
-      readButtonBIIR();
 
       Serial.print("Humidity: ");
       Serial.print(m_hBIIR);
       Serial.print(" %\t");
-      readButtonBIIR();
 
       lcd.setCursor(0, 0);
       lcd.print("Vochtigheid: ");
       lcd.print(m_hBIIR);
       lcd.print(" %");
-      readButtonBIIR();
 
       Serial.print("Temperature: ");
       Serial.print(m_tBIIR);
       Serial.println(" *C");
-      readButtonBIIR();
 
       lcd.setCursor(0, 2);
       lcd.print("Temperatuur: ");
       lcd.print(m_tBIIR);
       lcd.print(" C");
-      readButtonBIIR();
 
       oldHumBIIR = m_hBIIR;
       oldTempBIIR = m_tBIIR;
@@ -316,8 +352,11 @@ void tempHumBIIR()
 
 void barometerBIIR()
 {
+  /*
+     Main loop to read and print out the barometer sensor
+  */
 
-  if (printBarometerBIIR == false)
+  if (printBarometerBIIR == false) //print information to the LCD that doesn't have to be changed, this to prevent extra unnecessary blinking on the LCD screen
   {
     lcd.clear();
     lcd.setCursor(0, 0);
@@ -327,9 +366,12 @@ void barometerBIIR()
     lcd.setCursor(0, 2);
     lcd.print("Hoogte: ");
 
+    lcd.setCursor(16, 0);
+    lcd.print("C");
+
     printBarometerBIIR = true;
   }
-  else
+  else  //3 functions for printing out each variable, this to make the code look better and to prevent extra unnecessary blinking on the LCD screen
   {
     printBaroTempBIIR();
     printBaroPressBIIR();
@@ -339,24 +381,23 @@ void barometerBIIR()
 
 void printBaroTempBIIR()
 {
-
+  //Read the var from the sensor
   newBarTempBIIR = bmp280.getTemperature();
 
-  if ((newBarTempBIIR - oldBarTempBIIR) > 0.03  || (oldBarTempBIIR - newBarTempBIIR) > 0.03)
+  if ((newBarTempBIIR - oldBarTempBIIR) > 0.03  || (oldBarTempBIIR - newBarTempBIIR) > 0.03) //If the value has changed in a certain degree print it out (To prevent extra unnecessary blinking)
   {
     lcd.setCursor(10, 0);
     lcd.print(newBarTempBIIR);
-
     oldBarTempBIIR = newBarTempBIIR;
   }
 }
 
 void printBaroPressBIIR()
 {
-
+  //Read the var from the sensor
   newBarPressBIIR = bmp280.getPressure();
 
-  if ((newBarPressBIIR - oldPressBIIR) > 5.00  || (oldPressBIIR - newBarPressBIIR) > 5.00)
+  if ((newBarPressBIIR - oldPressBIIR) > 5.00  || (oldPressBIIR - newBarPressBIIR) > 5.00) //If the value has changed in a certain degree print it out (To prevent extra unnecessary blinking)
   {
     lcd.setCursor(10, 1);
     lcd.print(newBarPressBIIR);
@@ -367,10 +408,10 @@ void printBaroPressBIIR()
 
 void printBaroAltBIIR()
 {
-
+  //Read the var from the sensor
   newBarAltBIIR = bmp280.calcAltitude(newBarPressBIIR);
 
-  if ((newBarAltBIIR - oldAltBIIR) > 0.20      || (oldAltBIIR - newBarAltBIIR) > 0.20)
+  if ((newBarAltBIIR - oldAltBIIR) > 0.20      || (oldAltBIIR - newBarAltBIIR) > 0.20) //If the value has changed in a certain degree print it out (To prevent extra unnecessary blinking)
   {
     lcd.setCursor(10, 2);
     lcd.print(newBarAltBIIR);
@@ -381,7 +422,10 @@ void printBaroAltBIIR()
 
 void compassBIIR()         //Nog laten uitlezen LCD
 {
-  if (printCompassBIIR == false)
+  /*
+      Main loop to read and print out the compass sensor
+  */
+  if (printCompassBIIR == false) //print information to the LCD that doesn't have to be changed, this to prevent extra unnecessary blinking on the LCD screen
   {
     lcd.clear();
     lcd.setCursor(0, 0);
@@ -416,7 +460,7 @@ void compassBIIR()         //Nog laten uitlezen LCD
       compassYBIIR = Wire.read() << 8; //Y msb
       compassYBIIR |= Wire.read(); //Y lsb
 
-      printCompassHeadingBIIR();
+      printCompassHeadingBIIR();   //4 functions for printing out each variable, this to make the code look better and to prevent extra unnecessary blinking on the LCD screen
       printCompassXBIIR();
       printCompassYBIIR();
       printCompassZBIIR();
@@ -424,11 +468,44 @@ void compassBIIR()         //Nog laten uitlezen LCD
   }
 }
 
-void printCompassHeadingBIIR()
+void printCompassXBIIR()
+{
+  if ((compassXBIIR - oldXBIIR) > 10 || (oldXBIIR - compassXBIIR) > 10) //If the value has changed in a certain degree print it out (To prevent extra unnecessary blinking)
+  {
+    lcd.setCursor(4, 1);
+    lcd.print(compassXBIIR);
+
+    oldXBIIR = compassXBIIR;
+  }
+}
+
+void printCompassYBIIR()
+{
+  if ((compassYBIIR - oldYBIIR) > 10 || (oldYBIIR - compassYBIIR) > 10) //If the value has changed in a certain degree print it out (To prevent extra unnecessary blinking)
+  {
+    lcd.setCursor(4, 2);
+    lcd.print(compassYBIIR);
+
+    oldYBIIR = compassYBIIR;
+  }
+}
+
+void printCompassZBIIR()
+{
+  if ((compassZBIIR - oldZBIIR) > 10 || (oldZBIIR - compassZBIIR) > 10) //If the value has changed in a certain degree print it out (To prevent extra unnecessary blinking)
+  {
+    lcd.setCursor(4, 3);
+    lcd.print(compassZBIIR);
+
+    oldZBIIR = compassZBIIR;
+  }
+}
+
+void printCompassHeadingBIIR() //Read and print the heading
 {
   compassHeadingBIIR = Compass.GetHeadingDegrees();
 
-  if ((compassHeadingBIIR - oldCompassHeadingBIIR) > 00.50 || (oldCompassHeadingBIIR - compassHeadingBIIR) > 00.50)
+  if ((compassHeadingBIIR - oldCompassHeadingBIIR) > 00.50 || (oldCompassHeadingBIIR - compassHeadingBIIR) > 00.50) //If the value has changed in a certain degree print it out (To prevent extra unnecessary blinking)
   {
     lcd.setCursor(4, 0);
     lcd.print(compassHeadingBIIR);
@@ -439,73 +516,76 @@ void printCompassHeadingBIIR()
 }
 
 void printDirectionBIIR()
+/*
+   Read the compassHeading value, with this information the function looks which custom character it should use
+*/
 {
-  if (oldCompassHeadingBIIR > 340 || oldCompassHeadingBIIR < 20)
+  if (oldCompassHeadingBIIR > 340 || oldCompassHeadingBIIR < 20)  //Print North
   {
-    deleteOldHeading();
+    deleteOldHeading(); //Make sure the old character is deleted
 
     lcd.setCursor(15, 0);
     lcd.write(byte(1));
 
     HeadingBIIR = 1;
   }
-  if (oldCompassHeadingBIIR > 20 && oldCompassHeadingBIIR < 70)
+  if (oldCompassHeadingBIIR > 20 && oldCompassHeadingBIIR < 70)  //Print North-East
   {
-    deleteOldHeading();
+    deleteOldHeading(); //Make sure the old character is deleted
 
     lcd.setCursor(16, 0);
     lcd.write(byte(2));
 
     HeadingBIIR = 2;
   }
-  if (oldCompassHeadingBIIR > 70 && oldCompassHeadingBIIR < 110)
+  if (oldCompassHeadingBIIR > 70 && oldCompassHeadingBIIR < 110)  //Print East
   {
-    deleteOldHeading();
+    deleteOldHeading(); //Make sure the old character is deleted
 
     lcd.setCursor(16, 1);
     lcd.write(byte(3));
 
     HeadingBIIR = 3;
   }
-  if (oldCompassHeadingBIIR > 110 && oldCompassHeadingBIIR < 160)
+  if (oldCompassHeadingBIIR > 110 && oldCompassHeadingBIIR < 160)  //Print South-East
   {
-    deleteOldHeading();
+    deleteOldHeading(); //Make sure the old character is deleted
 
     lcd.setCursor(16, 2);
     lcd.write(byte(4));
 
     HeadingBIIR = 4;
   }
-  if (oldCompassHeadingBIIR > 160 && oldCompassHeadingBIIR < 200)
+  if (oldCompassHeadingBIIR > 160 && oldCompassHeadingBIIR < 200)  //Print South
   {
-    deleteOldHeading();
+    deleteOldHeading(); //Make sure the old character is deleted
 
     lcd.setCursor(15, 2);
     lcd.write(byte(5));
 
     HeadingBIIR = 5;
   }
-  if (oldCompassHeadingBIIR > 200 && oldCompassHeadingBIIR < 250)
+  if (oldCompassHeadingBIIR > 200 && oldCompassHeadingBIIR < 250)  //Print South-West
   {
-    deleteOldHeading();
+    deleteOldHeading(); //Make sure the old character is deleted
 
     lcd.setCursor(14, 2);
     lcd.write(byte(6));
 
     HeadingBIIR = 6;
   }
-  if (oldCompassHeadingBIIR > 250 && oldCompassHeadingBIIR < 290)
+  if (oldCompassHeadingBIIR > 250 && oldCompassHeadingBIIR < 290)  //Print West
   {
-    deleteOldHeading();
+    deleteOldHeading(); //Make sure the old character is deleted
 
     lcd.setCursor(14, 1);
     lcd.write(byte(7));
 
     HeadingBIIR = 7;
   }
-  if (oldCompassHeadingBIIR > 290 && oldCompassHeadingBIIR < 340)
+  if (oldCompassHeadingBIIR > 290 && oldCompassHeadingBIIR < 340)  //Print North-West
   {
-    deleteOldHeading();
+    deleteOldHeading(); //Make sure the old character is deleted
 
     lcd.setCursor(14, 0);
     lcd.write(byte(8));
@@ -515,7 +595,7 @@ void printDirectionBIIR()
 
 }
 
-void deleteOldHeading()
+void deleteOldHeading() //Deletes the old character depending on HeadingBIIR (which is given when a character has been placed))
 {
   switch (HeadingBIIR)
   {
@@ -566,39 +646,6 @@ void deleteOldHeading()
       lcd.setCursor(14, 0);
       lcd.print(" ");
       break;
-  }
-}
-
-void printCompassXBIIR()
-{
-  if ((compassXBIIR - oldXBIIR) > 10 || (oldXBIIR - compassXBIIR) > 10)
-  {
-    lcd.setCursor(4, 1);
-    lcd.print(compassXBIIR);
-
-    oldXBIIR = compassXBIIR;
-  }
-}
-
-void printCompassYBIIR()
-{
-  if ((compassYBIIR - oldYBIIR) > 10 || (oldYBIIR - compassYBIIR) > 10)
-  {
-    lcd.setCursor(4, 2);
-    lcd.print(compassYBIIR);
-
-    oldYBIIR = compassYBIIR;
-  }
-}
-
-void printCompassZBIIR()
-{
-  if ((compassZBIIR - oldZBIIR) > 10 || (oldZBIIR - compassZBIIR) > 10)
-  {
-    lcd.setCursor(4, 3);
-    lcd.print(compassZBIIR);
-
-    oldZBIIR = compassZBIIR;
   }
 }
 
