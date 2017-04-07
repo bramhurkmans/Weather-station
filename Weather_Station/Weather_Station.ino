@@ -648,8 +648,3 @@ void deleteOldHeading() //Deletes the old character depending on HeadingBIIR (wh
       break;
   }
 }
-
-
-
-
-
